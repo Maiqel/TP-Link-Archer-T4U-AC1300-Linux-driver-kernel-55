@@ -2241,6 +2241,29 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 	return ret;
 }
 
+
+void setFsPatch(){
+	struct kvec iov = {
+		.iov_base	= buf,
+		.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
+	};
+	struct kiocb kiocb;
+	struct iov_iter iter;
+	
+	init_sync_kiocb(&kiocb, file);
+	kiocb.ki_pos = *pos;
+	iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
+	ret = readFile(fp, buf, sz);
+	if(ret > 0){
+		*pos = kiocb.ki_pos;
+	}
+	closeFile(fp);
+
+}
+
+
+
+
 /*
 * Open the file with @param path and wirte @param sz byte of data starting from @param buf into the file
 * @param path the path of the file to open and write
