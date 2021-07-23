@@ -2182,12 +2182,28 @@ static int isFileReadable(const char *path, u32 *sz)
 	mm_segment_t oldfs;
 	char buf;
 
+	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
+		struct kvec iov = {
+			.iov_base	= buf,
+			.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
+		};
+		struct kiocb kiocb;
+		struct iov_iter iter;
+	#endif
+
 	fp = filp_open(path, O_RDONLY, 0);
 	if (IS_ERR(fp))
 		ret = PTR_ERR(fp);
 	else {
+
+	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 		oldfs = get_fs();
-		set_fs(get_ds());
+		set_fs(KERNEL_DS);
+	#elif 
+			init_sync_kiocb(&kiocb, fp);
+			kiocb.ki_pos = *pos;
+			iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
+	#endif
 
 		if (1 != readFile(fp, &buf, 1))
 			ret = PTR_ERR(fp);
@@ -2199,8 +2215,11 @@ static int isFileReadable(const char *path, u32 *sz)
 			*sz = i_size_read(fp->f_dentry->d_inode);
 			#endif
 		}
-
+	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 		set_fs(oldfs);
+	#elif 
+		*pos = kiocb.ki_pos;
+	#endif
 		filp_close(fp, NULL);
 	}
 	return ret;
@@ -2219,15 +2238,34 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 	mm_segment_t oldfs;
 	struct file *fp;
 
+	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
+	struct kvec iov = {
+		.iov_base	= buf,
+		.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
+	};
+	struct kiocb kiocb;
+	struct iov_iter iter;
+	#endif
+
 	if (path && buf) {
 		ret = openFile(&fp, path, O_RDONLY, 0);
 		if (0 == ret) {
 			RTW_INFO("%s openFile path:%s fp=%p\n", __FUNCTION__, path , fp);
 
+		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 			oldfs = get_fs();
-			set_fs(get_ds());
+			set_fs(KERNEL_DS);
+		#elif 
+				init_sync_kiocb(&kiocb, fp);
+				kiocb.ki_pos = *pos;
+				iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
+		#endif
 			ret = readFile(fp, buf, sz);
-			set_fs(oldfs);
+			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+				set_fs(oldfs);
+			#elif 
+				*pos = kiocb.ki_pos;
+			#endif
 			closeFile(fp);
 
 			RTW_INFO("%s readFile, ret:%d\n", __FUNCTION__, ret);
@@ -2240,29 +2278,6 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 	}
 	return ret;
 }
-
-
-void setFsPatch(){
-	struct kvec iov = {
-		.iov_base	= buf,
-		.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
-	};
-	struct kiocb kiocb;
-	struct iov_iter iter;
-	
-	init_sync_kiocb(&kiocb, file);
-	kiocb.ki_pos = *pos;
-	iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
-	ret = readFile(fp, buf, sz);
-	if(ret > 0){
-		*pos = kiocb.ki_pos;
-	}
-	closeFile(fp);
-
-}
-
-
-
 
 /*
 * Open the file with @param path and wirte @param sz byte of data starting from @param buf into the file
@@ -2277,15 +2292,35 @@ static int storeToFile(const char *path, u8 *buf, u32 sz)
 	mm_segment_t oldfs;
 	struct file *fp;
 
+	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
+	struct kvec iov = {
+		.iov_base	= buf,
+		.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
+	};
+	struct kiocb kiocb;
+	struct iov_iter iter;
+#endif
+
 	if (path && buf) {
 		ret = openFile(&fp, path, O_CREAT | O_WRONLY, 0666);
 		if (0 == ret) {
 			RTW_INFO("%s openFile path:%s fp=%p\n", __FUNCTION__, path , fp);
 
-			oldfs = get_fs();
-			set_fs(get_ds());
+			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+				oldfs = get_fs();
+				set_fs(KERNEL_DS);
+			#elif 
+					init_sync_kiocb(&kiocb, fp);
+					kiocb.ki_pos = *pos;
+					iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
+			#endif
 			ret = writeFile(fp, buf, sz);
-			set_fs(oldfs);
+			
+			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+				set_fs(oldfs);
+			#elif 
+				*pos = kiocb.ki_pos;
+			#endif
 			closeFile(fp);
 
 			RTW_INFO("%s writeFile, ret:%d\n", __FUNCTION__, ret);
