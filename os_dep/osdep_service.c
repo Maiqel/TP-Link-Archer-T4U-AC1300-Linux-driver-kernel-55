@@ -2200,8 +2200,9 @@ static int isFileReadable(const char *path, u32 *sz)
 		oldfs = get_fs();
 		set_fs(KERNEL_DS);
 	#else 
+			loff_t pos = fp->f_pos;
 			init_sync_kiocb(&kiocb, fp);
-			kiocb.ki_pos = *pos;
+			kiocb.ki_pos = pos;
 			iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
 	#endif
 
@@ -2218,7 +2219,7 @@ static int isFileReadable(const char *path, u32 *sz)
 	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 		set_fs(oldfs);
 	#else 
-		*pos = kiocb.ki_pos;
+		pos = kiocb.ki_pos;
 	#endif
 		filp_close(fp, NULL);
 	}
@@ -2256,15 +2257,16 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 			oldfs = get_fs();
 			set_fs(KERNEL_DS);
 		#else 
+				loff_t pos = fp->f_pos;
 				init_sync_kiocb(&kiocb, fp);
-				kiocb.ki_pos = *pos;
+				kiocb.ki_pos = pos;
 				iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
 		#endif
 			ret = readFile(fp, buf, sz);
 			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 				set_fs(oldfs);
 			#else 
-				*pos = kiocb.ki_pos;
+				pos = kiocb.ki_pos;
 			#endif
 			closeFile(fp);
 
@@ -2310,8 +2312,9 @@ static int storeToFile(const char *path, u8 *buf, u32 sz)
 				oldfs = get_fs();
 				set_fs(KERNEL_DS);
 			#else 
+					loff_t pos = fp->f_pos;
 					init_sync_kiocb(&kiocb, fp);
-					kiocb.ki_pos = *pos;
+					kiocb.ki_pos = pos;
 					iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
 			#endif
 			ret = writeFile(fp, buf, sz);
@@ -2319,7 +2322,7 @@ static int storeToFile(const char *path, u8 *buf, u32 sz)
 			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 				set_fs(oldfs);
 			#else 
-				*pos = kiocb.ki_pos;
+				pos = kiocb.ki_pos;
 			#endif
 			closeFile(fp);
 
