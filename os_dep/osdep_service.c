@@ -2185,7 +2185,7 @@ static int isFileReadable(const char *path, u32 *sz)
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 		struct kvec iov = {
 			.iov_base	= buf,
-			.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
+			.iov_len	= (size_t) MAX_RW_COUNT,
 		};
 		struct kiocb kiocb;
 		struct iov_iter iter;
@@ -2199,7 +2199,7 @@ static int isFileReadable(const char *path, u32 *sz)
 	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 		oldfs = get_fs();
 		set_fs(KERNEL_DS);
-	#elif 
+	#else 
 			init_sync_kiocb(&kiocb, fp);
 			kiocb.ki_pos = *pos;
 			iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
@@ -2217,7 +2217,7 @@ static int isFileReadable(const char *path, u32 *sz)
 		}
 	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 		set_fs(oldfs);
-	#elif 
+	#else 
 		*pos = kiocb.ki_pos;
 	#endif
 		filp_close(fp, NULL);
@@ -2241,7 +2241,7 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 	struct kvec iov = {
 		.iov_base	= buf,
-		.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
+		.iov_len	= (size_t) MAX_RW_COUNT,
 	};
 	struct kiocb kiocb;
 	struct iov_iter iter;
@@ -2255,7 +2255,7 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 			oldfs = get_fs();
 			set_fs(KERNEL_DS);
-		#elif 
+		#else 
 				init_sync_kiocb(&kiocb, fp);
 				kiocb.ki_pos = *pos;
 				iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
@@ -2263,7 +2263,7 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 			ret = readFile(fp, buf, sz);
 			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 				set_fs(oldfs);
-			#elif 
+			#else 
 				*pos = kiocb.ki_pos;
 			#endif
 			closeFile(fp);
@@ -2295,11 +2295,11 @@ static int storeToFile(const char *path, u8 *buf, u32 sz)
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 	struct kvec iov = {
 		.iov_base	= buf,
-		.iov_len	= min_t(size_t, count, MAX_RW_COUNT),
+		.iov_len	= (size_t) MAX_RW_COUNT,
 	};
 	struct kiocb kiocb;
 	struct iov_iter iter;
-#endif
+	#endif
 
 	if (path && buf) {
 		ret = openFile(&fp, path, O_CREAT | O_WRONLY, 0666);
@@ -2309,7 +2309,7 @@ static int storeToFile(const char *path, u8 *buf, u32 sz)
 			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 				oldfs = get_fs();
 				set_fs(KERNEL_DS);
-			#elif 
+			#else 
 					init_sync_kiocb(&kiocb, fp);
 					kiocb.ki_pos = *pos;
 					iov_iter_kvec(&iter, READ, &iov, 1, iov.iov_len);
@@ -2318,7 +2318,7 @@ static int storeToFile(const char *path, u8 *buf, u32 sz)
 			
 			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 				set_fs(oldfs);
-			#elif 
+			#else 
 				*pos = kiocb.ki_pos;
 			#endif
 			closeFile(fp);
