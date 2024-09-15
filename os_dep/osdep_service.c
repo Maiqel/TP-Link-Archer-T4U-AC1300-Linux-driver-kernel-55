@@ -1294,7 +1294,7 @@ u32 _rtw_down_sema(_sema *sema)
 inline void thread_exit(_completion *comp)
 {
 #ifdef PLATFORM_LINUX
-	complete_and_exit(comp, 0);
+	kthread_complete_and_exit(comp, 0);
 #endif
 
 #ifdef PLATFORM_FREEBSD
@@ -2179,7 +2179,7 @@ static int isFileReadable(const char *path, u32 *sz)
 {
 	struct file *fp;
 	int ret = 0;
-	mm_segment_t oldfs;
+	// mm_segment_t oldfs;
 	char buf;
 
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
@@ -2236,7 +2236,7 @@ static int isFileReadable(const char *path, u32 *sz)
 static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 {
 	int ret = -1;
-	mm_segment_t oldfs;
+	// mm_segment_t oldfs;
 	struct file *fp;
 
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
@@ -2291,7 +2291,7 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 static int storeToFile(const char *path, u8 *buf, u32 sz)
 {
 	int ret = 0;
-	mm_segment_t oldfs;
+	// mm_segment_t oldfs;
 	struct file *fp;
 
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
@@ -2642,7 +2642,9 @@ u64 rtw_division64(u64 x, u64 y)
 inline u32 rtw_random32(void)
 {
 #ifdef PLATFORM_LINUX
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0))
+	return get_random_u32();
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	return prandom_u32();
 #elif (LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18))
 	u32 random_int;
